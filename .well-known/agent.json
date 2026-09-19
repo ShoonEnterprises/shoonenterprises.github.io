@@ -9,7 +9,7 @@
     "stateTransitionHistory": false,
     "streaming": false
   },
-  "description": "Five machine-callable trust services \u2014 claim verification, citation audits, structured extraction, news tripwires, proof-of-work audits \u2014 free during the pilot at https://shoon-a2a-sandbox.onrender.com. Every task is private to its buyer; deliverables are Ed25519-signed (key id sandbox-ed25519-7fe549f937c6) and verifiable offline.",
+  "description": "Five machine-callable trust services \u2014 claim verification, citation audits, structured extraction, news tripwires, proof-of-work audits \u2014 free during the pilot at https://shoon-a2a-sandbox.onrender.com. Every task is private to its buyer; deliverables are Ed25519-signed (key id sandbox-ed25519-8a42aae6a81d) and verifiable offline.",
   "endpoints": {
     "api": "https://shoon-a2a-sandbox.onrender.com",
     "catalog": "https://shoonenterprises.github.io/catalog.json"
