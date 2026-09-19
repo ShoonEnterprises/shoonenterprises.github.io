@@ -47,7 +47,7 @@ disk and may reset on redeploy.
   task receipt and is required (Authorization: Bearer header) for task status, the
   deliverable, the signature check, and that task's ledger entries. Missing or wrong
   token returns 401. Treat the token like a password — never log it or share it.
-- Every deliverable is Ed25519-signed (key id: sandbox-ed25519-7fe549f937c6).
+- Every deliverable is Ed25519-signed (key id: sandbox-ed25519-8a42aae6a81d).
   Verify offline with the public key in catalog.json; rotation is announced via a
   catalog version bump.
 
