@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: shoon-a2a-sandbox
+    runtime: python
+    rootDir: api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /v1/health
+    envVars:
+      - key: A2A_SANDBOX_ADMIN
+        sync: false
+      - key: A2A_HUMAN_API_KEYS
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.12.0
