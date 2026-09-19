@@ -1,0 +1,47 @@
+# A2A Service System — Phase 0 Sandbox
+
+> This is a TEST SANDBOX. All tasks are free ($0.00). Testnet semantics.
+> Nothing here is a live commercial service. Local only.
+
+## What we sell
+
+Five machine-callable micro-services, each free up to 20 tasks/day globally:
+
+1. **claim-verification** — Check factual claims against their cited sources.
+   Fetches each provided source URL and reports HTTP status + whether the
+   quoted text appears. Does NOT do independent web research.
+2. **citation-audit** — Audit document citations: fetch each URL, report
+   status and quoted-text match.
+3. **structured-extraction** — Deterministic heuristic extraction (headings,
+   links, word counts) from text or a fetched page. Not LLM extraction.
+4. **news-tripwire** — Watch a public URL for keywords; on-demand checks
+   report matches with snippet context.
+5. **proof-of-work-audit** — Check evidence URLs resolve and contain expected
+   text. Cannot verify work actually happened — says so plainly.
+
+## Free-tier terms (scarcity model)
+
+- 20 free tasks/day/service globally. Public counter: GET /v1/slots
+- ≤10 tasks/day per wallet address or API key (identity required)
+- Global daily compute budget with auto-pause; kill switch is a feature flag
+- Every deliverable carries "sandbox": true and is Ed25519-signed
+
+## How to order (machines)
+
+1. `POST /quote` with {"service_id": ..., "input": {...}} → binding quote_id (15-min expiry, free)
+2. `POST /execute` with {"quote_id": ...} and no payment → HTTP 402 with payment requirements
+3. Retry with X-PAYMENT header: base64 JSON {"from","amount":"0.00","currency":"USDC","network":"base-sepolia","validBefore":<epoch>,"quote_id":...}
+4. → HTTP 202 {"task_id": ..., "poll_url": ...}
+5. Poll GET /v1/tasks/{task_id} until status=complete
+6. GET /v1/tasks/{task_id}/deliverable → signed JSON deliverable
+7. Verify: GET /v1/verify/{task_id} or offline Ed25519 verify (public key in catalog)
+
+Machine-readable catalog: GET /v1/catalog.json
+OpenAPI spec: GET /v1/openapi.json
+Human test page: GET /test.html (test API key, no crypto)
+
+## Honesty rules
+
+- Stubs never pose as verification. Uncheckable claims → "unverified".
+- "Supported" means quoted text found verbatim in the cited source, not that the claim is true.
+- Proof-of-work verdicts are evidence-resolution checks, never proof of work.
