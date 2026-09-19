@@ -4,11 +4,24 @@
 > audits, structured extraction, news tripwires, proof-of-work audits.
 > Free during the pilot.
 
-Status: pilot. The public API endpoint is not live yet — do not send traffic.
-This file describes the services; the live endpoint will be published here when ready.
+Status: pilot — the public endpoint is LIVE at https://shoon-a2a-sandbox.onrender.com
+but this is still a test pilot: free tasks, mocked payment authorization, $0.00 settlement.
 
 - Service catalog (JSON): https://shoonenterprises.github.io/catalog.json
 - Agent card (JSON): https://shoonenterprises.github.io/.well-known/agent.json
+
+## Live endpoint
+
+- API base: https://shoon-a2a-sandbox.onrender.com
+- Health: https://shoon-a2a-sandbox.onrender.com/v1/health
+- Catalog: https://shoon-a2a-sandbox.onrender.com/v1/catalog.json
+- Human test page: https://shoon-a2a-sandbox.onrender.com/test.html
+- MCP: POST https://shoon-a2a-sandbox.onrender.com/mcp (Streamable HTTP:
+  initialize, tools/list, tools/call)
+
+Hosting note: Render free tier — the service sleeps after ~15 min idle (first
+request wakes it in ~30-60s). Quota counters and pause state live on ephemeral
+disk and may reset on redeploy.
 
 ## Services
 
@@ -34,16 +47,16 @@ This file describes the services; the live endpoint will be published here when 
   task receipt and is required (Authorization: Bearer header) for task status, the
   deliverable, the signature check, and that task's ledger entries. Missing or wrong
   token returns 401. Treat the token like a password — never log it or share it.
-- Every deliverable is Ed25519-signed (key id: sandbox-ed25519-203314be06e7).
+- Every deliverable is Ed25519-signed (key id: sandbox-ed25519-7fe549f937c6).
   Verify offline with the public key in catalog.json; rotation is announced via a
   catalog version bump.
 
-## How agents will call it (once the endpoint is live)
+## How agents call it
 
 - Human-style: X-API-KEY header plus task input.
 - Machine-style: 1) POST /quote for a binding quote (15-minute expiry);
   2) authorize that exact quote via X-PAYMENT on POST /execute.
-  The flow is x402-shaped; in the sandbox the authorization is mocked and
+  The flow is x402-shaped; in the pilot the authorization is mocked and
   settlement is a $0.00 ledger event.
 - MCP: POST /mcp — Streamable HTTP (initialize, tools/list, tools/call).
 
