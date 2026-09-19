@@ -1,1 +1,77 @@
-{"authentication":{"human":"X-API-KEY header plus task input.","machine":"Quote first (POST /quote), then authorize that exact quote via X-PAYMENT on POST /execute. x402-shaped; mocked in the sandbox ($0.00 settlement).","mcp":"POST /mcp — MCP Streamable HTTP: initialize, tools/list, tools/call."},"capabilities":{"pushNotifications":false,"stateTransitionHistory":false,"streaming":false},"description":"Five machine-callable trust services — claim verification, citation audits, structured extraction, news tripwires, proof-of-work audits — free during the pilot. Every task is private to its buyer; deliverables are Ed25519-signed and verifiable offline. Public API endpoint pending deployment; see catalog for status.","endpoints":{"api":null,"catalog":"https://shoonenterprises.github.io/catalog.json"},"name":"Shoon Enterprises A2A Services","privacy":"Per-task 256-bit read token (Bearer header) required for task status, deliverable, signature check, and that task's ledger entries. Missing or wrong token returns 401.","provider":{"organization":"Shoon Enterprises","url":"https://shoonenterprises.github.io/"},"skills":[{"description":"Checks quoted text appears in cited sources (presence, not truth). Max 10 claims, 5 sources per task.","id":"claim-verification","name":"Claim Verification","tags":["verification","claims","fact-checking"]},{"description":"Fetches each citation URL; reports status, content type, verbatim quote match. Max 25 citations.","id":"citation-audit","name":"Citation Audit","tags":["citations","audit","verification"]},{"description":"Deterministic heuristics (headings, links, tables, stats); not LLM extraction. Max 100,000 chars.","id":"structured-extraction","name":"Structured Extraction","tags":["extraction","structured-data"]},{"description":"Keyword watch on a public URL/RSS feed; on-demand checks, no background scheduler yet. Max 20 keywords.","id":"news-tripwire","name":"News Tripwire","tags":["monitoring","alerts","news"]},{"description":"Checks evidence URLs resolve and artifact text appears; cannot verify work occurred. Max 10 evidence items.","id":"proof-of-work-audit","name":"Proof-of-Work Audit","tags":["audit","proof-of-work","evidence"]}],"status":"pilot","url":"https://shoonenterprises.github.io/","version":"0.1.0"}
+{
+  "authentication": {
+    "human": "X-API-KEY header plus task input.",
+    "machine": "Quote first (POST /quote), then authorize that exact quote via X-PAYMENT on POST /execute. x402-shaped; mocked in the sandbox ($0.00 settlement).",
+    "mcp": "POST /mcp \u2014 MCP Streamable HTTP: initialize, tools/list, tools/call."
+  },
+  "capabilities": {
+    "pushNotifications": false,
+    "stateTransitionHistory": false,
+    "streaming": false
+  },
+  "description": "Five machine-callable trust services \u2014 claim verification, citation audits, structured extraction, news tripwires, proof-of-work audits \u2014 free during the pilot at https://shoon-a2a-sandbox.onrender.com. Every task is private to its buyer; deliverables are Ed25519-signed (key id sandbox-ed25519-7fe549f937c6) and verifiable offline.",
+  "endpoints": {
+    "api": "https://shoon-a2a-sandbox.onrender.com",
+    "catalog": "https://shoonenterprises.github.io/catalog.json"
+  },
+  "name": "Shoon Enterprises A2A Services",
+  "privacy": "Per-task 256-bit read token (Bearer header) required for task status, deliverable, signature check, and that task's ledger entries. Missing or wrong token returns 401.",
+  "provider": {
+    "organization": "Shoon Enterprises",
+    "url": "https://shoonenterprises.github.io/"
+  },
+  "skills": [
+    {
+      "description": "Checks quoted text appears in cited sources (presence, not truth). Max 10 claims, 5 sources per task.",
+      "id": "claim-verification",
+      "name": "Claim Verification",
+      "tags": [
+        "verification",
+        "claims",
+        "fact-checking"
+      ]
+    },
+    {
+      "description": "Fetches each citation URL; reports status, content type, verbatim quote match. Max 25 citations.",
+      "id": "citation-audit",
+      "name": "Citation Audit",
+      "tags": [
+        "citations",
+        "audit",
+        "verification"
+      ]
+    },
+    {
+      "description": "Deterministic heuristics (headings, links, tables, stats); not LLM extraction. Max 100,000 chars.",
+      "id": "structured-extraction",
+      "name": "Structured Extraction",
+      "tags": [
+        "extraction",
+        "structured-data"
+      ]
+    },
+    {
+      "description": "Keyword watch on a public URL/RSS feed; on-demand checks, no background scheduler yet. Max 20 keywords.",
+      "id": "news-tripwire",
+      "name": "News Tripwire",
+      "tags": [
+        "monitoring",
+        "alerts",
+        "news"
+      ]
+    },
+    {
+      "description": "Checks evidence URLs resolve and artifact text appears; cannot verify work occurred. Max 10 evidence items.",
+      "id": "proof-of-work-audit",
+      "name": "Proof-of-Work Audit",
+      "tags": [
+        "audit",
+        "proof-of-work",
+        "evidence"
+      ]
+    }
+  ],
+  "status": "pilot",
+  "url": "https://shoonenterprises.github.io/",
+  "version": "0.2.0"
+}
