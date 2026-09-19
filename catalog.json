@@ -56,12 +56,12 @@
   ],
   "signing": {
     "algorithm": "Ed25519",
-    "key_id": "sandbox-ed25519-7fe549f937c6",
-    "public_key_hex": "312cd10e6e55d2b224c9ec51f98ce5623807752dc032072108faa6547e1e719f",
+    "key_id": "sandbox-ed25519-8a42aae6a81d",
+    "public_key_hex": "c11742a36b429c24228d2386af6b4d8c4a8d70abc141cd79b0af4918107c39e4",
     "note": "Every deliverable is Ed25519-signed by the live pilot instance. Verify signatures offline with the public key above; key rotation is announced via a catalog version bump."
   },
   "site": "https://shoonenterprises.github.io/",
   "status": "pilot",
   "updated": "2026-09-19",
-  "version": "0.2.0"
+  "version": "0.2.1"
 }
