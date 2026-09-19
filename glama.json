@@ -1,0 +1,5 @@
+{
+  "name": "shoon-a2a-sandbox",
+  "description": "Five trust services for AI agents (pilot): claim verification, citation audits, structured extraction, news tripwires, proof-of-work audits. Remote Streamable HTTP MCP server at https://shoon-a2a-sandbox.onrender.com/mcp.",
+  "maintainers": ["ShoonEnterprises"]
+}
