@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A2A Service Sandbox — Human Test Page</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  .banner { background: #fff3cd; border: 1px solid #e0a800; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+  label { display: block; margin-top: 1rem; font-weight: 600; }
+  select, input, textarea { width: 100%; padding: 0.5rem; margin-top: 0.25rem; box-sizing: border-box; }
+  textarea { height: 180px; font-family: monospace; font-size: 0.85rem; }
+  button { margin-top: 1rem; padding: 0.6rem 1.2rem; cursor: pointer; }
+  pre { background: #f6f8fa; padding: 1rem; border-radius: 8px; overflow: auto; max-height: 500px; font-size: 0.8rem; }
+  .row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="banner">
+  <strong>PHASE 0 SANDBOX — test only.</strong> Everything here is free ($0.00),
+  testnet semantics, local only. Use the test API key; no crypto, no wallet needed.
+</div>
+
+<h1>Try a service</h1>
+
+<label>Service
+  <select id="service">
+    <option value="claim-verification">Claim Verification</option>
+    <option value="citation-audit">Citation Audit</option>
+    <option value="structured-extraction">Structured Extraction</option>
+    <option value="news-tripwire">News Tripwire</option>
+    <option value="proof-of-work-audit">Proof-of-Work Audit</option>
+  </select>
+</label>
+
+<div class="row">
+  <button onclick="loadExample()">Load example input</button>
+  <span id="slots" style="margin-top:1.2rem;color:#555;"></span>
+</div>
+
+<label>Input (JSON)
+  <textarea id="input" spellcheck="false"></textarea>
+</label>
+
+<label>Test API key
+  <input id="apikey" value="TEST-KEY-DEMO">
+</label>
+
+<div class="row">
+  <button onclick="runFlow()">1) Quote → 2) Execute → 3) Poll → Show result</button>
+</div>
+
+<h2>Result</h2>
+<pre id="out">Nothing yet.</pre>
+
+<script>
+const EXAMPLES = {
+  "claim-verification": {claims:[{claim:"The 30Y Treasury yield was around 5.327% on September 18, 2026.",sources:[{url:"https://www.example.com",quoted_text:"Treasury yield"}]}]},
+  "citation-audit": {citations:[{url:"https://www.example.com",quoted_text:"Example Domain",label:"example citation"}]},
+  "structured-extraction": {url:"https://www.example.com"},
+  "news-tripwire": {action:"check",url:"https://www.example.com",keywords:["Example","domain"]},
+  "proof-of-work-audit": {work_claim:"Deployed the sandbox gateway.",evidence:[{url:"https://www.example.com",expected_text:"Example Domain",label:"deploy log"}]}
+};
+const BASE = "";
+
+function log(obj){ document.getElementById("out").textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2); }
+function loadExample(){
+  const s = document.getElementById("service").value;
+  document.getElementById("input").value = JSON.stringify(EXAMPLES[s], null, 2);
+}
+async function refreshSlots(){
+  try {
+    const r = await fetch(BASE + "/v1/slots"); const j = await r.json();
+    document.getElementById("slots").textContent =
+      "Free slots today: " + j.services.map(s => s.service_id + " " + s.slots_remaining_today + "/20").join(" · ") +
+      (j.paused ? " — PAUSED" : "");
+  } catch(e){ document.getElementById("slots").textContent = "slots unavailable"; }
+}
+async function runFlow(){
+  const service_id = document.getElementById("service").value;
+  const apikey = document.getElementById("apikey").value;
+  let input;
+  try { input = JSON.parse(document.getElementById("input").value); }
+  catch(e){ log("Input is not valid JSON: " + e.message); return; }
+  try {
+    log("Requesting quote…");
+    let r = await fetch(BASE + "/quote", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({service_id, input})});
+    let q = await r.json();
+    if(!r.ok){ log({stage:"quote", error:q}); return; }
+    log({stage:"quote ok", quote:q});
+    log("Executing (human intake, X-API-KEY)…");
+    r = await fetch(BASE + "/execute", {method:"POST", headers:{"Content-Type":"application/json","X-API-KEY":apikey},
+      body: JSON.stringify({quote_id:q.quote_id})});
+    let ex = await r.json();
+    if(r.status === 402){ log({stage:"execute → 402 (humans use X-API-KEY; machines attach X-PAYMENT)", detail:ex}); return; }
+    if(!r.ok){ log({stage:"execute", error:ex}); return; }
+    const task_id = ex.task_id;
+    const read_token = ex.read_token;
+    const priv = { "Authorization": "Bearer " + read_token };
+    log({stage:"accepted", task_id, poll_url:ex.poll_url, privacy:"read_token issued — task data is private to this token"});
+    for(let i=0;i<60;i++){
+      await new Promise(res => setTimeout(res, 1000));
+      r = await fetch(BASE + "/v1/tasks/" + task_id, {headers: priv});
+      const st = await r.json();
+      if(st.status === "complete" || st.status === "failed"){
+        if(st.status === "failed"){ log({stage:"task failed", task:st}); return; }
+        r = await fetch(BASE + "/v1/tasks/" + task_id + "/deliverable", {headers: priv});
+        const d = await r.json();
+        log({stage:"deliverable (Ed25519-signed)", deliverable:d});
+        refreshSlots();
+        return;
+      }
+    }
+    log("Timed out waiting for task " + task_id);
+  } catch(e){ log("Error: " + e.message); }
+  refreshSlots();
+}
+loadExample(); refreshSlots();
+</script>
+</body>
+</html>
