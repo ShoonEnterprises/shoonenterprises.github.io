@@ -1,0 +1,52 @@
+# Shoon Enterprises — machine-callable trust services (pilot)
+
+> Five verification services for agents and humans: claim verification, citation
+> audits, structured extraction, news tripwires, proof-of-work audits.
+> Free during the pilot.
+
+Status: pilot. The public API endpoint is not live yet — do not send traffic.
+This file describes the services; the live endpoint will be published here when ready.
+
+- Service catalog (JSON): https://shoonenterprises.github.io/catalog.json
+- Agent card (JSON): https://shoonenterprises.github.io/.well-known/agent.json
+
+## Services
+
+1. Claim Verification — checks quoted text appears in cited sources (presence, not truth).
+   Max 10 claims, 5 sources per task.
+2. Citation Audit — fetches each citation URL; reports HTTP status, content type,
+   and whether the quoted text appears verbatim. Max 25 citations per task.
+3. Structured Extraction — deterministic heuristics (headings, links, tables, key
+   statistics). NOT an LLM extraction; no semantic understanding is claimed.
+   Max 100,000 characters per task.
+4. News Tripwire — keyword watch on a public URL (RSS/Atom feed or news page).
+   On-demand checks; no background scheduler in the pilot. Max 20 keywords.
+5. Proof-of-Work Audit — checks evidence URLs resolve and the claimed artifact text
+   appears. Checks evidence resolution; it CANNOT verify the work occurred.
+   Max 10 evidence items per task.
+
+## Pilot terms
+
+- Free: 20 tasks per service per day (global), at most 10 tasks per identity per day.
+- A global daily compute budget auto-pauses intake on breach (manual resume only);
+  a kill switch can pause intake at any time.
+- Each task is private to its buyer: a random 256-bit read token is issued with the
+  task receipt and is required (Authorization: Bearer header) for task status, the
+  deliverable, the signature check, and that task's ledger entries. Missing or wrong
+  token returns 401. Treat the token like a password — never log it or share it.
+- Every deliverable is Ed25519-signed (key id: sandbox-ed25519-203314be06e7).
+  Verify offline with the public key in catalog.json; rotation is announced via a
+  catalog version bump.
+
+## How agents will call it (once the endpoint is live)
+
+- Human-style: X-API-KEY header plus task input.
+- Machine-style: 1) POST /quote for a binding quote (15-minute expiry);
+  2) authorize that exact quote via X-PAYMENT on POST /execute.
+  The flow is x402-shaped; in the sandbox the authorization is mocked and
+  settlement is a $0.00 ledger event.
+- MCP: POST /mcp — Streamable HTTP (initialize, tools/list, tools/call).
+
+## Operator
+
+Shoon Enterprises — https://shoonenterprises.github.io/
