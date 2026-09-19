@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import Body, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -60,6 +61,16 @@ app = FastAPI(
     redoc_url=None,
 )
 
+# CORS: allow any website (e.g. the operator dashboard) to read the PUBLIC
+# endpoints (health, catalog, slots) from a browser. Authenticated endpoints
+# still require their secret/token headers — CORS exposes no credentials.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+
 # ---------------------------------------------------------------- in-memory stores
 quotes: Dict[str, Dict[str, Any]] = {}
 tasks: Dict[str, Dict[str, Any]] = {}
@@ -67,16 +78,8 @@ deliverables: Dict[str, Dict[str, Any]] = {}
 quotes_lock = threading.Lock()
 tasks_lock = threading.Lock()
 
-# Human API keys — identity labels for the free pilot (not payment secrets).
-# Override via A2A_HUMAN_API_KEYS env var (comma-separated) on public deploys
-# so the keys in use aren't the publicly visible demo ones.
-HUMAN_API_KEYS = {
-    k.strip()
-    for k in os.environ.get(
-        "A2A_HUMAN_API_KEYS", "TEST-KEY-DEMO,TEST-KEY-ALPHA,TEST-KEY-BETA"
-    ).split(",")
-    if k.strip()
-}
+# Human test API keys (sandbox only — not secrets, just identity labels)
+HUMAN_API_KEYS = {"TEST-KEY-DEMO", "TEST-KEY-ALPHA", "TEST-KEY-BETA"}
 
 SERVICE_IDS = {s["id"] for s in SERVICES}
 
@@ -158,21 +161,6 @@ def slots() -> JSONResponse:
 @app.get("/v1/health")
 def health() -> JSONResponse:
     return JSONResponse({"ok": True, "sandbox": True, "paused": QUOTAS.paused, "time": now_iso()})
-
-
-
-# ---------------------------------------------------------------- client IP behind a reverse proxy
-def _client_ip(request: Request) -> str:
-    """Client IP for the quote rate limiter.
-
-    Behind Render's proxy the direct peer is the proxy itself, so use
-    X-Forwarded-For's leftmost entry. Spoofing only affects rate-limit
-    bucketing; per-identity task quotas are still enforced separately.
-    """
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip() or "unknown"
-    return request.client.host if request.client else "unknown"
 
 
 # ---------------------------------------------------------------- per-IP rate limit on the free quote endpoint
@@ -261,7 +249,7 @@ def quote(body: Dict[str, Any], request: Request) -> JSONResponse:
                 "message": "Intake is paused (auto-pause or kill switch). In-flight paid tasks complete; no new intake. No auto-resume.",
             },
         )
-    client_ip = _client_ip(request)
+    client_ip = request.client.host if request.client else "unknown"
     if not _quote_rate_ok(client_ip):
         raise HTTPException(
             status_code=429,
