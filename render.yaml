@@ -12,5 +12,7 @@ services:
         sync: false
       - key: A2A_HUMAN_API_KEYS
         sync: false
+      - key: A2A_SIGNING_SEED
+        sync: false
       - key: PYTHON_VERSION
         value: 3.12.0
