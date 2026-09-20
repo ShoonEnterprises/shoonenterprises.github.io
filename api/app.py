@@ -574,7 +574,9 @@ def _mcp_tools() -> List[Dict[str, Any]]:
                 "ran. Privacy: your input is processed in server memory only — "
                 "never written to disk, never logged, never sold, never used "
                 "for training; only event metadata (task queued/completed) is "
-                "kept, and all server state is wiped on restart. Fair use: 20 "
+                "kept. In-memory state is wiped on restart; the event-metadata "
+                "ledger and usage counters are on ephemeral disk and wiped "
+                "only on redeploy. Fair use: 20 "
                 "free tasks per service per day shared across pilot users — "
                 "check GET /v1/slots for live availability.",
                 "inputSchema": {
