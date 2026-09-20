@@ -3,7 +3,7 @@
   "api_status_note": "Public pilot endpoint is live. Hosted on Render's free tier: the service sleeps after ~15 min idle (first request wakes it in ~30-60s); quota counters and pause state live on ephemeral disk and may reset on redeploy.",
   "authentication": {
     "human": "X-API-KEY header plus task input.",
-    "machine": "Free pilot (default): POST /mcp tools/call with arguments.input, or POST /execute directly — no payment header, API key, or signup needed; the $0.00 mock settlement is auto-authorized. Advanced: 1) POST /quote for a binding quote (15-minute expiry). 2) Authorize that exact quote with an X-PAYMENT header on POST /execute. The flow is x402-shaped; the authorization is mocked and settlement is a $0.00 ledger event.",
+    "machine": "Free pilot (default): POST /mcp tools/call with arguments.input — no payment header, API key, or signup needed. Advanced: 1) POST /quote for a binding quote (15-minute expiry). 2) Authorize that exact quote with an X-PAYMENT header on POST /execute. The flow is x402-shaped; the authorization is mocked and settlement is a $0.00 ledger event. Human flow: X-API-KEY header on POST /execute with the task input.",
     "mcp": "POST /mcp — MCP Streamable HTTP (methods: initialize, notifications/initialized, ping, tools/list, tools/call). No auth headers required during the free pilot."
   },
   "name": "Shoon Enterprises A2A Services",
@@ -69,7 +69,7 @@
     "inputs": "Task inputs live in server memory for the duration of processing and are then released. Quote inputs are held in memory until the 15-minute quote expiry.",
     "ledger": "The append-only ledger records event metadata only (quoted, authorized, task queued/started/completed/failed) — never inputs, outputs, or read tokens.",
     "outputs": "Task results are held in server memory behind a per-task 256-bit read token; only the caller can retrieve them. Missing or wrong token returns 401.",
-    "retention": "All server-side state (memory + ephemeral disk) is wiped whenever the instance restarts or redeploys — on the Render free tier this happens regularly.",
+    "retention": "In-memory state (quotes, tasks, signed deliverables, funnel counters) is wiped whenever the instance restarts — on the Render free tier this happens regularly as the service sleeps and wakes. The append-only event-metadata ledger and the usage/traffic counters live on ephemeral disk: they persist across restarts and are wiped only on redeploy.",
     "operator_access": "Honest note: this is the operator's server, so inputs necessarily pass through it in transit and memory. Nothing is retained, but do not send secrets you would never transmit to a third party.",
     "contact": "Operated by Shoon Enterprises as a public technology pilot. Code and docs: https://github.com/ShoonEnterprises/shoonenterprises.github.io"
   }
