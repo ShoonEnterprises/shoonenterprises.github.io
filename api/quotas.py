@@ -167,6 +167,32 @@ class QuotaManager:
         with self._lock, self._connect() as conn:
             self._bump_counter(conn, "origin", origin)
 
+    def record_hit(self, path_key: str) -> None:
+        """Count one request hit by normalized METHOD + path (funnel telemetry).
+
+        Browsing leaves no task trace, so this is how we see which discovery
+        surfaces (catalog, agent card, llms.txt, /mcp, test page, quote
+        funnel...) are actually being visited. kind='path' reuses the
+        daily_counters table; no schema change needed.
+        """
+        with self._lock, self._connect() as conn:
+            self._bump_counter(conn, "path", path_key)
+
+    def traffic_snapshot(self) -> Dict[str, object]:
+        """Per-endpoint hit counts for today (UTC) — public funnel telemetry.
+
+        Aggregated METHOD + path only; no identities, no payload data.
+        """
+        with self._lock, self._connect() as conn:
+            day = self._today()
+            hits: Dict[str, int] = {}
+            for key, count in conn.execute(
+                "SELECT key, count FROM daily_counters WHERE day=? AND kind='path'",
+                (day,),
+            ):
+                hits[key] = count
+            return {"date": day, "hits": hits}
+
     def set_paused(self, paused: bool, reason: str) -> None:
         with self._lock, self._connect() as conn:
             self._set_state(conn, "paused", "1" if paused else "0")
