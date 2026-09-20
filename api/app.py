@@ -127,6 +127,20 @@ deliverables: Dict[str, Dict[str, Any]] = {}
 quotes_lock = threading.Lock()
 tasks_lock = threading.Lock()
 
+# MCP method/outcome telemetry (in-memory, ephemeral like all server state).
+# Counts only — no identities, no payload data, consistent with the published
+# data-handling policy. Fail-open: _mcp_count never raises.
+MCP_STATS: Dict[str, int] = {}
+_mcp_stats_lock = threading.Lock()
+
+
+def _mcp_count(key: str) -> None:
+    try:
+        with _mcp_stats_lock:
+            MCP_STATS[key] = MCP_STATS.get(key, 0) + 1
+    except Exception:
+        pass
+
 # Human test API keys (sandbox only — not secrets, just identity labels)
 HUMAN_API_KEYS = {"TEST-KEY-DEMO", "TEST-KEY-ALPHA", "TEST-KEY-BETA"}
 
@@ -224,12 +238,22 @@ def health() -> JSONResponse:
 
 @app.get("/v1/traffic")
 def traffic() -> JSONResponse:
-    """Public funnel telemetry: today's per-endpoint hit counts (UTC).
+    """Public funnel telemetry: today's per-endpoint hit counts (UTC), plus
+    MCP method/outcome counters.
 
-    Aggregated METHOD + path only — no identities, no payload data. Our own
+    Aggregated counts only — no identities, no payload data. Our own
     keep-alive poller is excluded by User-Agent, so these are genuine visits.
+    The `mcp` object shows the discovery-to-conversion funnel: how many
+    clients initialized, listed tools, called tools, and how those calls
+    resolved (accepted / completed / failed / auth_failed / validation_failed).
     """
-    return JSONResponse({"sandbox": True, **QUOTAS.traffic_snapshot()})
+    snap = QUOTAS.traffic_snapshot()
+    try:
+        with _mcp_stats_lock:
+            snap["mcp"] = dict(MCP_STATS)
+    except Exception:
+        pass
+    return JSONResponse({"sandbox": True, **snap})
 
 
 # ---------------------------------------------------------------- per-IP rate limit on the free quote endpoint
@@ -593,7 +617,15 @@ def _mcp_tools_call(
     x_payment: Optional[str],
     x_api_key: Optional[str],
 ) -> Dict[str, Any]:
+    _mcp_count("mcp.tools_call")
     def err(code: int, message: str, data: Any = None) -> Dict[str, Any]:
+        # Outcome telemetry: auth failure / validation failure / task rejection.
+        if code == -32001:
+            _mcp_count("mcp.tools_call.auth_failed")
+        elif code == -32602:
+            _mcp_count("mcp.tools_call.validation_failed")
+        elif code == -32000:
+            _mcp_count("mcp.tools_call.rejected")
         e: Dict[str, Any] = {"code": code, "message": message}
         if data is not None:
             e["data"] = data
@@ -680,6 +712,7 @@ def _mcp_tools_call(
         task_id, read_token = _accept_task(record, payer, intake_kind, origin="mcp")
     except HTTPException as e:
         return err(-32000, f"task not accepted: {e.detail}", {"sandbox": True})
+    _mcp_count("mcp.tools_call.accepted")
 
     try:
         task = _wait_for_task(task_id)
@@ -695,6 +728,7 @@ def _mcp_tools_call(
             }
         )
     if task.get("status") == "failed":
+        _mcp_count("mcp.tools_call.task_failed")
         return ok(
             {
                 "status": "failed",
@@ -705,6 +739,7 @@ def _mcp_tools_call(
             is_error=True,
         )
     signed = deliverables.get(task_id)
+    _mcp_count("mcp.tools_call.completed")
     return ok(
         {
             "status": "complete",
@@ -733,6 +768,7 @@ def _mcp_handle_one(
         params = {}
 
     if method == "initialize":
+        _mcp_count("mcp.initialize")
         return {
             "jsonrpc": "2.0",
             "id": req_id,
@@ -743,15 +779,19 @@ def _mcp_handle_one(
             },
         }
     if method == "notifications/initialized":
+        _mcp_count("mcp.other")
         return None
     if method == "ping":
+        _mcp_count("mcp.other")
         return {"jsonrpc": "2.0", "id": req_id, "result": {}}
     if method == "tools/list":
+        _mcp_count("mcp.tools_list")
         return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": _mcp_tools()}}
     if method == "tools/call":
         return _mcp_tools_call(req_id, params, x_payment, x_api_key)
     if is_notification:
         return None
+    _mcp_count("mcp.unknown")
     return {
         "jsonrpc": "2.0",
         "id": req_id,
