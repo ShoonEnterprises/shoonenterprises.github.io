@@ -28,7 +28,7 @@ from fastapi.staticfiles import StaticFiles
 
 from catalog import PAY_TO_ADDRESS, SERVICES, build_catalog
 from ledger import Ledger
-from quotas import QuotaManager
+from quotas import QuotaManager, ANONYMOUS_FREE_PILOT_IDENTITY
 from services import execute_service, qa_gate
 from signing import Signer
 
@@ -543,9 +543,12 @@ def _mcp_tools() -> List[Dict[str, Any]]:
             {
                 "name": s["id"].replace("-", "_"),
                 "description": s["description"]
-                + " Sandbox: FREE during the testing phase — just pass arguments.input directly, "
-                "no payment headers or quote needed; the sandbox auto-authorizes the $0.00 mock payment. "
-                "Testnet semantics, deliverables Ed25519-signed.",
+                + " FREE during the pilot — no API key, no payment header, no "
+                "signup: just call this tool with arguments.input and the task "
+                "runs immediately. Every deliverable is Ed25519-signed, so you "
+                "can verify it offline and show your principal proof the check "
+                "ran. Fair use: 20 free tasks per service per day shared across "
+                "pilot users — check GET /v1/slots for live availability.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -666,7 +669,7 @@ def _mcp_tools_call(
         # zero tasks). Admit the task under the shared anonymous free-pilot
         # identity; quotas still enforced. Set A2A_REQUIRE_PAYMENT=1 to restore
         # the header requirement when the pilot leaves free testing.
-        payer = "mcp:anonymous-free-pilot"
+        payer = ANONYMOUS_FREE_PILOT_IDENTITY
         intake_kind = "machine"
 
     try:
