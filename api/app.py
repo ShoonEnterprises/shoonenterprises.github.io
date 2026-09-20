@@ -81,7 +81,28 @@ app.add_middleware(
 # inflates the numbers. No identities or payload data are recorded here;
 # only METHOD + path (with ID-like segments collapsed to {id}).
 _WATCH_UA_PREFIX = "a2a-usage-watch/"
-_ID_SEGMENT = re.compile(r"/[0-9a-fA-F\-]{8,}")
+# Infrastructure noise that must not pollute the funnel: Render's own health
+# checker plus common uptime/health probes. Matched case-insensitively as
+# substrings — real browsers and agent clients never carry these tokens.
+_INFRA_UA_SUBSTRINGS = (
+    "render",
+    "healthcheck",
+    "health-check",
+    "health_checker",
+    "kube-probe",
+    "googlehc",
+    "elb-healthchecker",
+    "uptimerobot",
+    "pingdom",
+)
+
+
+def _is_noise_ua(ua: str) -> bool:
+    if ua.startswith(_WATCH_UA_PREFIX):
+        return True
+    ua_low = ua.lower()
+    return any(s in ua_low for s in _INFRA_UA_SUBSTRINGS)
+_ID_SEGMENT = re.compile(r"/([a-z]_)?[0-9a-fA-F\-]{8,}")
 
 
 def _normalize_hit_path(path: str) -> str:
@@ -93,7 +114,7 @@ async def traffic_counter(request: Request, call_next):
     response = await call_next(request)
     try:
         ua = request.headers.get("user-agent", "")
-        if not ua.startswith(_WATCH_UA_PREFIX):
+        if not _is_noise_ua(ua):
             QUOTAS.record_hit(f"{request.method} {_normalize_hit_path(request.url.path)}")
     except Exception:  # telemetry must never break a response
         pass
