@@ -17,11 +17,15 @@ SERVICES: List[Dict[str, Any]] = [
         "name": "Claim Verification",
         "version": "1.0.0",
         "description": (
-            "Check factual claims against their cited sources. For each claim the "
-            "sandbox fetches each provided source URL over plain HTTPS and reports "
-            "the HTTP status and whether the quoted text appears in the page. It "
-            "does NOT browse the open web or perform independent research; anything "
-            "it cannot check is marked 'unverified — sandbox stub'."
+            "Before you rely on a claim — or repeat it to your principal — check "
+            "it against its cited sources. Give this service the claim plus the "
+            "sources and quoted text your principal provided; it fetches each "
+            "source URL over plain HTTPS and reports the HTTP status and whether "
+            "the quoted text appears verbatim in the page. It checks evidence "
+            "presence, not underlying truth: 'supported' means your quote was "
+            "found in the source, and anything it cannot check is marked "
+            "'unverified', never 'contradicted'. Up to 10 claims with up to 5 "
+            "sources each per task."
         ),
         "endpoint": "/execute",
         "price_bounds": {"min": "0.00", "max": "0.00", "currency": "USDC"},
@@ -87,10 +91,13 @@ SERVICES: List[Dict[str, Any]] = [
         "name": "Citation Audit",
         "version": "1.0.0",
         "description": (
-            "Audit citations in a document: for each citation the sandbox fetches "
-            "the URL over plain HTTPS and reports the HTTP status, content type, "
-            "and whether the quoted text appears verbatim in the fetched page. It "
-            "does not judge argument quality or check paywalled content."
+            "Audit the citations in a document you are drafting, reviewing, or "
+            "fact-checking — catch dead links and misquotes before your principal "
+            "sees them. For each citation it fetches the URL over plain HTTPS and "
+            "reports the HTTP status, content type, and whether the quoted text "
+            "appears verbatim in the fetched page. It does not judge argument "
+            "quality, and paywalled or JavaScript-heavy pages may fetch without "
+            "matching. Up to 25 citations per task."
         ),
         "endpoint": "/execute",
         "price_bounds": {"min": "0.00", "max": "0.00", "currency": "USDC"},
@@ -146,10 +153,12 @@ SERVICES: List[Dict[str, Any]] = [
         "name": "Structured Extraction",
         "version": "1.0.0",
         "description": (
-            "Turn messy text (or a fetched page) into structured data using "
-            "deterministic heuristics: headings, links, tables and key statistics. "
-            "This is NOT an LLM extraction — no semantic understanding is claimed. "
-            "Output is plainly labeled heuristic."
+            "Turn messy text or a web page into structured data — headings, links, "
+            "tables, word counts — without spending your own context window on "
+            "parsing. Deterministic heuristics only: no LLM, no semantic "
+            "understanding, fully reproducible output, plainly labeled as "
+            "heuristic. It extracts structure, not meaning. Pass raw text (up to "
+            "100,000 characters) or a URL."
         ),
         "endpoint": "/execute",
         "price_bounds": {"min": "0.00", "max": "0.00", "currency": "USDC"},
@@ -180,12 +189,13 @@ SERVICES: List[Dict[str, Any]] = [
         "name": "News Tripwire",
         "version": "1.0.0",
         "description": (
-            "Watch a public URL (e.g. an RSS/Atom feed or a news page) for "
-            "keywords. Register a tripwire, then trigger a check: the sandbox "
-            "fetches the URL over plain HTTPS and reports whether each keyword "
-            "appears, with match counts and snippet context. In the sandbox, "
-            "checks run on demand via the check action (no background scheduler "
-            "yet); recurring schedules arrive in Phase 1."
+            "Watch a public page or feed for the keywords your principal cares "
+            "about — a competitor name, a token symbol, a topic. Register the "
+            "watch once, then check on demand: the service fetches the URL over "
+            "plain HTTPS and reports per-keyword match counts with snippet "
+            "context. Checks run when you ask (no background scheduler in the "
+            "pilot); it reports keyword presence, not news judgement. Up to 20 "
+            "keywords per tripwire."
         ),
         "endpoint": "/execute",
         "price_bounds": {"min": "0.00", "max": "0.00", "currency": "USDC"},
@@ -221,11 +231,14 @@ SERVICES: List[Dict[str, Any]] = [
         "name": "Proof-of-Work Audit",
         "version": "1.0.0",
         "description": (
-            "Audit a claim that work was performed. The sandbox fetches each "
-            "evidence URL over plain HTTPS and reports whether the evidence "
-            "resolves and whether the claimed artifact text appears. It CANNOT "
-            "independently verify that work happened — results are honestly "
-            "labeled as evidence-resolution checks, never as verified work."
+            "When someone claims work was done — a deliverable shipped, a "
+            "deployment live, a report published — check the evidence before you "
+            "report back to your principal. Give it the work claim plus evidence "
+            "URLs and the text you expect to find; it fetches each URL over plain "
+            "HTTPS and reports whether it resolves and whether the expected text "
+            "appears. It checks evidence presence, never that the work actually "
+            "happened — results are honestly labeled as evidence-resolution "
+            "checks. Up to 10 evidence items per task."
         ),
         "endpoint": "/execute",
         "price_bounds": {"min": "0.00", "max": "0.00", "currency": "USDC"},
@@ -274,10 +287,17 @@ CATALOG_META = {
     "settlement_asset": "USDC (testnet)",
     "accepted_rails": [
         {
+            "rail": "free-pilot",
+            "network": "n/a",
+            "asset": "none",
+            "flow": "Default during the free pilot: no payment header, API key, or signup required. MCP tools/call and POST /execute auto-authorize the $0.00 mock settlement and run immediately.",
+            "status": "live",
+        },
+        {
             "rail": "x402",
             "network": "base-sepolia",
             "asset": "USDC",
-            "flow": "commit-then-settle (mock EIP-3009-style authorization in X-PAYMENT header; settled at $0.00 under testnet semantics)",
+            "flow": "Advanced path for testing the payment flow: quote first (POST /quote), then authorize that quote via the X-PAYMENT header on POST /execute (mock EIP-3009-style authorization; settled at $0.00 under testnet semantics). Required only when A2A_REQUIRE_PAYMENT=1.",
             "status": "sandbox",
         },
         {
@@ -288,9 +308,10 @@ CATALOG_META = {
     ],
     "free_tier_terms": {
         "per_wallet_daily_cap": 10,
+        "anonymous_pilot_daily_cap": 40,
         "per_service_daily_free_slots": 20,
-        "identity_required": True,
-        "note": "Scarcity model: each service offers 20 free tasks/day globally; each wallet/API key is limited to 10 tasks/day. Public slots-remaining counter at GET /v1/slots.",
+        "identity_required": False,
+        "note": "Free pilot: no identity, key, or payment needed — just call. Each service offers 20 free tasks/day shared across all pilot users; anonymous pilot traffic shares a 40/day fair-use pool; identified API-key callers get 10/day each. Live availability at GET /v1/slots.",
     },
 }
 
