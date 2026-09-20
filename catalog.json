@@ -3,17 +3,17 @@
   "api_status_note": "Public pilot endpoint is live. Hosted on Render's free tier: the service sleeps after ~15 min idle (first request wakes it in ~30-60s); quota counters and pause state live on ephemeral disk and may reset on redeploy.",
   "authentication": {
     "human": "X-API-KEY header plus task input.",
-    "machine": "Two-step: 1) POST /quote for a binding quote (15-minute expiry). 2) Authorize that exact quote with an X-PAYMENT header on POST /execute. The flow is x402-shaped; in the sandbox the authorization is mocked and settlement is a $0.00 ledger event.",
-    "mcp": "POST /mcp \u2014 MCP Streamable HTTP (methods: initialize, notifications/initialized, ping, tools/list, tools/call) on the same auth rails."
+    "machine": "Free pilot (default): POST /mcp tools/call with arguments.input, or POST /execute directly — no payment header, API key, or signup needed; the $0.00 mock settlement is auto-authorized. Advanced: 1) POST /quote for a binding quote (15-minute expiry). 2) Authorize that exact quote with an X-PAYMENT header on POST /execute. The flow is x402-shaped; the authorization is mocked and settlement is a $0.00 ledger event.",
+    "mcp": "POST /mcp — MCP Streamable HTTP (methods: initialize, notifications/initialized, ping, tools/list, tools/call). No auth headers required during the free pilot."
   },
   "name": "Shoon Enterprises A2A Services",
   "operator": "Shoon Enterprises",
-  "pricing": "Free during the pilot. 20 tasks per service per day (global supply), at most 10 tasks per identity per day. A global daily compute budget auto-pauses intake on breach (manual resume only); a kill switch can pause intake at any time.",
+  "pricing": "Free during the pilot — no key, payment, or signup. 20 tasks per service per day (shared across all pilot users); anonymous pilot traffic shares a 40/day fair-use pool; identified API-key callers get 10/day each. Live availability at GET /v1/slots. A global daily compute budget auto-pauses intake on breach (manual resume only); a kill switch can pause intake at any time.",
   "privacy": "Each task is private to its buyer. A random 256-bit read token is issued with the task receipt; task status, the deliverable, the signature check, and that task's ledger entries all require it via the Authorization: Bearer header (URL/query tokens are rejected; missing or wrong token returns 401). Treat the token like a password: never log it or share it.",
   "sandbox": true,
   "services": [
     {
-      "description": "Checks factual claims against their cited sources. For each claim the service fetches each provided source URL and reports the HTTP status and whether the quoted text appears in the page. It verifies quoted-text presence \u2014 it does NOT judge factual truth.",
+      "description": "Before you rely on a claim — or repeat it to your principal — check it against its cited sources. Give this service the claim plus the sources and quoted text your principal provided; it fetches each source URL and reports the HTTP status and whether the quoted text appears verbatim in the page. It checks evidence presence, not underlying truth: 'supported' means your quote was found in the source; anything it cannot check is marked 'unverified', never 'contradicted'.",
       "id": "claim-verification",
       "input_caps": {
         "max_claims": 10,
@@ -22,7 +22,7 @@
       "name": "Claim Verification"
     },
     {
-      "description": "Audits the citations in a document. For each citation the service fetches the URL and reports the HTTP status, content type, and whether the quoted text appears verbatim in the fetched page. It does not judge citation quality.",
+      "description": "Audit the citations in a document you are drafting, reviewing, or fact-checking — catch dead links and misquotes before your principal sees them. For each citation it fetches the URL and reports the HTTP status, content type, and whether the quoted text appears verbatim in the fetched page. It does not judge argument quality, and paywalled or JavaScript-heavy pages may fetch without matching.",
       "id": "citation-audit",
       "input_caps": {
         "max_citations": 25
@@ -30,7 +30,7 @@
       "name": "Citation Audit"
     },
     {
-      "description": "Turns messy text (or a fetched page) into structured data using deterministic heuristics: headings, links, tables and key statistics. This is NOT an LLM extraction \u2014 no semantic understanding is claimed.",
+      "description": "Turn messy text or a web page into structured data — headings, links, tables, word counts — without spending your own context window on parsing. Deterministic heuristics only: no LLM, no semantic understanding, fully reproducible output, plainly labeled as heuristic. It extracts structure, not meaning.",
       "id": "structured-extraction",
       "input_caps": {
         "max_text_chars": 100000
@@ -38,7 +38,7 @@
       "name": "Structured Extraction"
     },
     {
-      "description": "Watches a public URL (e.g. an RSS/Atom feed or a news page) for keywords. Register a tripwire, then trigger a check: the service fetches the URL and reports whether each keyword appears, with match counts. No background scheduler in the pilot \u2014 checks run on demand.",
+      "description": "Watch a public page or feed for the keywords your principal cares about — a competitor name, a token symbol, a topic. Register the watch once, then check on demand: the service fetches the URL and reports per-keyword match counts with snippet context. Checks run when you ask (no background scheduler in the pilot); it reports keyword presence, not news judgement.",
       "id": "news-tripwire",
       "input_caps": {
         "max_keywords": 20
@@ -46,7 +46,7 @@
       "name": "News Tripwire"
     },
     {
-      "description": "Audits a claim that work was performed. The service fetches each evidence URL and reports whether the evidence resolves and whether the claimed artifact text appears. It checks evidence resolution \u2014 it CANNOT independently verify that the work occurred.",
+      "description": "When someone claims work was done — a deliverable shipped, a deployment live, a report published — check the evidence before you report back to your principal. Give it the work claim plus evidence URLs and the text you expect to find; it fetches each URL and reports whether it resolves and whether the expected text appears. It checks evidence presence, never that the work actually happened — results are honestly labeled as evidence-resolution checks.",
       "id": "proof-of-work-audit",
       "input_caps": {
         "max_evidence_items": 10
@@ -57,11 +57,20 @@
   "signing": {
     "algorithm": "Ed25519",
     "key_id": "sandbox-ed25519-8a42aae6a81d",
-    "public_key_hex": "c11742a36b429c24228d2386af6b4d8c4a8d70abc141cd79b0af4918107c39e4",
-    "note": "Every deliverable is Ed25519-signed by the live pilot instance. Verify signatures offline with the public key above; key rotation is announced via a catalog version bump."
+    "note": "Every deliverable is Ed25519-signed by the live pilot instance. Verify signatures offline with the public key above; key rotation is announced via a catalog version bump.",
+    "public_key_hex": "c11742a36b429c24228d2386af6b4d8c4a8d70abc141cd79b0af4918107c39e4"
   },
   "site": "https://shoonenterprises.github.io/",
   "status": "pilot",
-  "updated": "2026-09-19",
-  "version": "0.2.1"
+  "updated": "2026-09-20",
+  "version": "0.3.0",
+  "data_handling": {
+    "summary": "Your task inputs are processed in server memory only — never written to disk, never logged, never sold, never shared, never used for model training. There is no human review queue.",
+    "inputs": "Task inputs live in server memory for the duration of processing and are then released. Quote inputs are held in memory until the 15-minute quote expiry.",
+    "ledger": "The append-only ledger records event metadata only (quoted, authorized, task queued/started/completed/failed) — never inputs, outputs, or read tokens.",
+    "outputs": "Task results are held in server memory behind a per-task 256-bit read token; only the caller can retrieve them. Missing or wrong token returns 401.",
+    "retention": "All server-side state (memory + ephemeral disk) is wiped whenever the instance restarts or redeploys — on the Render free tier this happens regularly.",
+    "operator_access": "Honest note: this is the operator's server, so inputs necessarily pass through it in transit and memory. Nothing is retained, but do not send secrets you would never transmit to a third party.",
+    "contact": "Operated by Shoon Enterprises as a public technology pilot. Code and docs: https://github.com/ShoonEnterprises/shoonenterprises.github.io"
+  }
 }
