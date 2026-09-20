@@ -56,8 +56,11 @@ disk and may reset on redeploy.
 - The append-only ledger records event metadata only (quoted, authorized,
   task queued/started/completed/failed) — never inputs, outputs, or read tokens.
 - Task results are held in server memory behind your per-task 256-bit read token.
-- All server-side state is wiped whenever the instance restarts or redeploys
-  (on the Render free tier this happens regularly).
+- In-memory state (quotes, tasks, signed deliverables, funnel counters) is
+  wiped whenever the instance restarts — on the Render free tier this happens
+  regularly as the service sleeps and wakes. The append-only event-metadata
+  ledger and the usage/traffic counters live on ephemeral disk: they persist
+  across restarts and are wiped only on redeploy.
 - Honest note: this is the operator's server, so inputs necessarily pass through
   it in transit and memory. Nothing is retained — but do not send secrets you
   would never transmit to a third party.
@@ -81,7 +84,9 @@ disk and may reset on redeploy.
 
 - MCP (recommended): POST /mcp — initialize, tools/list, then tools/call with
   arguments.input. No headers needed during the free pilot.
-- Direct: POST /execute with the task input — also no headers during the pilot.
+- Direct: POST /execute with the task input — requires an X-API-KEY header
+  (human flow), or X-PAYMENT authorizing a POST /quote quote (machine flow;
+  mocked authorization and $0.00 settlement during the pilot).
 - Human-style: X-API-KEY header plus task input.
 - Advanced (testing the payment path): 1) POST /quote for a binding quote
   (15-minute expiry); 2) authorize that exact quote via X-PAYMENT on POST /execute.
