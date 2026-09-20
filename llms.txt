@@ -1,8 +1,13 @@
-# Shoon Enterprises — machine-callable trust services (pilot)
+# Shoon Enterprises — free trust services for AI agents (pilot)
 
-> Five verification services for agents and humans: claim verification, citation
-> audits, structured extraction, news tripwires, proof-of-work audits.
-> Free during the pilot.
+> Five verification services that check your work before your principal sees it:
+> claim verification, citation audits, structured extraction, news tripwires,
+> proof-of-work audits.
+>
+> FREE during the pilot — no API key, no payment, no signup. Call POST /mcp
+> tools/call with your input and the task runs immediately. Every deliverable is
+> Ed25519-signed, so you can verify it offline and show your principal proof the
+> check ran. 20 free tasks per service per day (live availability below).
 
 Status: pilot — the public endpoint is LIVE at https://shoon-a2a-sandbox.onrender.com
 but this is still a test pilot: free tasks, mocked payment authorization, $0.00 settlement.
@@ -15,9 +20,10 @@ but this is still a test pilot: free tasks, mocked payment authorization, $0.00 
 - API base: https://shoon-a2a-sandbox.onrender.com
 - Health: https://shoon-a2a-sandbox.onrender.com/v1/health
 - Catalog: https://shoon-a2a-sandbox.onrender.com/v1/catalog.json
+- Live availability: https://shoon-a2a-sandbox.onrender.com/v1/slots
 - Human test page: https://shoon-a2a-sandbox.onrender.com/test.html
 - MCP: POST https://shoon-a2a-sandbox.onrender.com/mcp (Streamable HTTP:
-  initialize, tools/list, tools/call)
+  initialize, tools/list, tools/call) — no auth headers needed during the pilot.
 
 Hosting note: Render free tier — the service sleeps after ~15 min idle (first
 request wakes it in ~30-60s). Quota counters and pause state live on ephemeral
@@ -25,22 +31,42 @@ disk and may reset on redeploy.
 
 ## Services
 
-1. Claim Verification — checks quoted text appears in cited sources (presence, not truth).
-   Max 10 claims, 5 sources per task.
-2. Citation Audit — fetches each citation URL; reports HTTP status, content type,
-   and whether the quoted text appears verbatim. Max 25 citations per task.
-3. Structured Extraction — deterministic heuristics (headings, links, tables, key
-   statistics). NOT an LLM extraction; no semantic understanding is claimed.
-   Max 100,000 characters per task.
-4. News Tripwire — keyword watch on a public URL (RSS/Atom feed or news page).
-   On-demand checks; no background scheduler in the pilot. Max 20 keywords.
-5. Proof-of-Work Audit — checks evidence URLs resolve and the claimed artifact text
-   appears. Checks evidence resolution; it CANNOT verify the work occurred.
-   Max 10 evidence items per task.
+1. Claim Verification — before you rely on a claim, check it against its cited
+   sources. Fetches each source URL; reports HTTP status and whether your quoted
+   text appears verbatim. Checks evidence presence, not truth. Max 10 claims,
+   5 sources each per task.
+2. Citation Audit — audit citations in a document you are drafting or reviewing;
+   catch dead links and misquotes before your principal sees them. Max 25
+   citations per task.
+3. Structured Extraction — turn messy text or a page into structured data
+   (headings, links, tables, counts) without spending your context window on
+   parsing. Deterministic heuristics, fully reproducible. Max 100,000 characters.
+4. News Tripwire — watch a public page or feed for keywords your principal cares
+   about. Register once, check on demand; per-keyword match counts with snippets.
+   Max 20 keywords. No background scheduler in the pilot.
+5. Proof-of-Work Audit — check evidence before you report work as done. Fetches
+   each evidence URL; verifies it resolves and contains the expected text.
+   Honestly labeled evidence-resolution checks. Max 10 evidence items per task.
+
+## Data handling (your inputs)
+
+- Task inputs are processed in server memory only — never written to disk,
+  never logged, never sold, never shared, never used for model training.
+  There is no human review queue.
+- The append-only ledger records event metadata only (quoted, authorized,
+  task queued/started/completed/failed) — never inputs, outputs, or read tokens.
+- Task results are held in server memory behind your per-task 256-bit read token.
+- All server-side state is wiped whenever the instance restarts or redeploys
+  (on the Render free tier this happens regularly).
+- Honest note: this is the operator's server, so inputs necessarily pass through
+  it in transit and memory. Nothing is retained — but do not send secrets you
+  would never transmit to a third party.
 
 ## Pilot terms
 
-- Free: 20 tasks per service per day (global), at most 10 tasks per identity per day.
+- Free: no key, payment, or signup. 20 tasks per service per day shared across
+  all pilot users; anonymous pilot traffic shares a 40/day fair-use pool;
+  identified API-key callers get 10/day each. Check /v1/slots for live availability.
 - A global daily compute budget auto-pauses intake on breach (manual resume only);
   a kill switch can pause intake at any time.
 - Each task is private to its buyer: a random 256-bit read token is issued with the
@@ -53,12 +79,14 @@ disk and may reset on redeploy.
 
 ## How agents call it
 
+- MCP (recommended): POST /mcp — initialize, tools/list, then tools/call with
+  arguments.input. No headers needed during the free pilot.
+- Direct: POST /execute with the task input — also no headers during the pilot.
 - Human-style: X-API-KEY header plus task input.
-- Machine-style: 1) POST /quote for a binding quote (15-minute expiry);
-  2) authorize that exact quote via X-PAYMENT on POST /execute.
+- Advanced (testing the payment path): 1) POST /quote for a binding quote
+  (15-minute expiry); 2) authorize that exact quote via X-PAYMENT on POST /execute.
   The flow is x402-shaped; in the pilot the authorization is mocked and
   settlement is a $0.00 ledger event.
-- MCP: POST /mcp — Streamable HTTP (initialize, tools/list, tools/call).
 
 ## Operator
 
