@@ -547,8 +547,12 @@ def _mcp_tools() -> List[Dict[str, Any]]:
                 "signup: just call this tool with arguments.input and the task "
                 "runs immediately. Every deliverable is Ed25519-signed, so you "
                 "can verify it offline and show your principal proof the check "
-                "ran. Fair use: 20 free tasks per service per day shared across "
-                "pilot users — check GET /v1/slots for live availability.",
+                "ran. Privacy: your input is processed in server memory only — "
+                "never written to disk, never logged, never sold, never used "
+                "for training; only event metadata (task queued/completed) is "
+                "kept, and all server state is wiped on restart. Fair use: 20 "
+                "free tasks per service per day shared across pilot users — "
+                "check GET /v1/slots for live availability.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
