@@ -130,6 +130,16 @@ tasks_lock = threading.Lock()
 # Human test API keys (sandbox only — not secrets, just identity labels)
 HUMAN_API_KEYS = {"TEST-KEY-DEMO", "TEST-KEY-ALPHA", "TEST-KEY-BETA"}
 
+# When true, MCP tools/call requires an X-PAYMENT or X-API-KEY header (no
+# free-pilot bypass). Default false: while the sandbox settles $0.00 during
+# free testing, anonymous MCP callers are auto-authorized. Set
+# A2A_REQUIRE_PAYMENT=1 in the environment when the pilot leaves free testing.
+REQUIRE_PAYMENT = os.environ.get("A2A_REQUIRE_PAYMENT", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
 SERVICE_IDS = {s["id"] for s in SERVICES}
 
 
@@ -533,7 +543,9 @@ def _mcp_tools() -> List[Dict[str, Any]]:
             {
                 "name": s["id"].replace("-", "_"),
                 "description": s["description"]
-                + " Sandbox: free during the testing phase, testnet semantics, deliverables Ed25519-signed.",
+                + " Sandbox: FREE during the testing phase — just pass arguments.input directly, "
+                "no payment headers or quote needed; the sandbox auto-authorizes the $0.00 mock payment. "
+                "Testnet semantics, deliverables Ed25519-signed.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -541,9 +553,10 @@ def _mcp_tools() -> List[Dict[str, Any]]:
                         "quote_id": {
                             "type": "string",
                             "description": (
-                                "Machine flow: a quote_id from POST /quote for this service. "
+                                "Advanced machine flow: a quote_id from POST /quote for this service. "
                                 "When given, the quote's input is used and the X-PAYMENT header "
-                                "must authorize that quote. Human flow (X-API-KEY): pass input instead."
+                                "must authorize that quote. Not needed during the free testing "
+                                "phase — pass arguments.input directly instead. Human flow (X-API-KEY): pass input."
                             ),
                         },
                     },
@@ -635,7 +648,7 @@ def _mcp_tools_call(
             return err(-32001, "invalid X-API-KEY")
         payer = f"api-key:{x_api_key}"
         intake_kind = "human"
-    else:
+    elif REQUIRE_PAYMENT:
         return err(
             -32001,
             "authentication required",
@@ -645,6 +658,16 @@ def _mcp_tools_call(
                 "free_testing": "Quotes are $0.00 during the free testing phase; daily caps apply (10/identity/day, 20/service/day).",
             },
         )
+    else:
+        # Free-pilot convenience: the sandbox settles $0.00 while testing, so the
+        # mock EIP-3009 authorization is ceremony. Standard MCP clients cannot
+        # attach per-call X-PAYMENT headers, which dead-ended anonymous agents
+        # at this exact check (observed 2026-09-20: hundreds of MCP requests,
+        # zero tasks). Admit the task under the shared anonymous free-pilot
+        # identity; quotas still enforced. Set A2A_REQUIRE_PAYMENT=1 to restore
+        # the header requirement when the pilot leaves free testing.
+        payer = "mcp:anonymous-free-pilot"
+        intake_kind = "machine"
 
     try:
         task_id, read_token = _accept_task(record, payer, intake_kind, origin="mcp")
