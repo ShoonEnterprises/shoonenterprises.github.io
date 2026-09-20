@@ -1,6 +1,8 @@
 """Quota enforcement: scarcity model for the free sandbox.
 
-- wallet/API-key identity required; ≤10 tasks/day/identity
+- free pilot: no identity/key/payment required on MCP or /execute;
+  unauthenticated callers share a 40 tasks/day fair-use pool
+- identified wallet/API-key callers: ≤10 tasks/day/identity
 - ≤20 tasks/day/service globally (the scarcity model)
 - global daily simulated token budget with auto-pause on breach
 - kill switch as a feature flag (no auto-resume ever)
@@ -22,6 +24,12 @@ from catalog import SERVICES
 
 SERVICE_SLOT_CAPS = {s["id"]: s["daily_free_slots"] for s in SERVICES}
 PER_IDENTITY_DAILY_CAP = 10
+# Shared identity used by all unauthenticated MCP calls during the free pilot.
+# It gets a larger pool than a single identified caller so early pilot traffic
+# is not locked out after 10 tasks; the per-service 20/day caps remain the
+# binding scarcity control, and the global token budget + kill switch still apply.
+ANONYMOUS_FREE_PILOT_IDENTITY = "mcp:anonymous-free-pilot"
+ANONYMOUS_PILOT_DAILY_CAP = 40
 PRUNE_AFTER_DAYS = 7
 
 
@@ -144,8 +152,13 @@ class QuotaManager:
                 reason = self._get_state(conn, "pause_reason") or "paused"
                 return False, f"intake paused: {reason}"
             used_identity = self._get_counter(conn, "identity", identity)
-            if used_identity >= PER_IDENTITY_DAILY_CAP:
-                return False, f"identity daily cap reached ({PER_IDENTITY_DAILY_CAP}/day)"
+            identity_cap = (
+                ANONYMOUS_PILOT_DAILY_CAP
+                if identity == ANONYMOUS_FREE_PILOT_IDENTITY
+                else PER_IDENTITY_DAILY_CAP
+            )
+            if used_identity >= identity_cap:
+                return False, f"identity daily cap reached ({identity_cap}/day)"
             used_service = self._get_counter(conn, "service", service_id)
             cap = SERVICE_SLOT_CAPS.get(service_id, 20)
             if used_service >= cap:
