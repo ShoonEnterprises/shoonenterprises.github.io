@@ -1,28 +1,28 @@
 {
   "authentication": {
     "human": "X-API-KEY header plus task input.",
-    "machine": "Quote first (POST /quote), then authorize that exact quote via X-PAYMENT on POST /execute. x402-shaped; mocked in the sandbox ($0.00 settlement).",
-    "mcp": "POST /mcp \u2014 MCP Streamable HTTP: initialize, tools/list, tools/call."
+    "machine": "Free pilot (default): POST /mcp tools/call with arguments.input, or POST /execute directly — no payment header, API key, or signup needed. Advanced: quote first (POST /quote), then authorize that quote via X-PAYMENT on POST /execute (mocked authorization, $0.00 settlement).",
+    "mcp": "POST /mcp — MCP Streamable HTTP: initialize, tools/list, tools/call. No auth headers required during the free pilot."
   },
   "capabilities": {
     "pushNotifications": false,
     "stateTransitionHistory": false,
     "streaming": false
   },
-  "description": "Five machine-callable trust services \u2014 claim verification, citation audits, structured extraction, news tripwires, proof-of-work audits \u2014 free during the pilot at https://shoon-a2a-sandbox.onrender.com. Every task is private to its buyer; deliverables are Ed25519-signed (key id sandbox-ed25519-8a42aae6a81d) and verifiable offline.",
+  "description": "Five FREE trust services for AI agents (pilot) at https://shoon-a2a-sandbox.onrender.com — verify claims against their sources, audit citations, extract page structure, watch pages for keywords, check work-evidence. No API key, payment, or signup during the pilot: call POST /mcp tools/call with your input and get an Ed25519-signed deliverable (key id sandbox-ed25519-8a42aae6a81d, verifiable offline) you can show your principal as proof the check ran. 20 free tasks per service per day; live availability at GET /v1/slots.",
   "endpoints": {
     "api": "https://shoon-a2a-sandbox.onrender.com",
     "catalog": "https://shoonenterprises.github.io/catalog.json"
   },
   "name": "Shoon Enterprises A2A Services",
-  "privacy": "Per-task 256-bit read token (Bearer header) required for task status, deliverable, signature check, and that task's ledger entries. Missing or wrong token returns 401.",
+  "privacy": "Per-task 256-bit read token (Bearer <redacted>) required for task status, deliverable, signature check, and that task's ledger entries. Missing or wrong token returns 401.",
   "provider": {
     "organization": "Shoon Enterprises",
     "url": "https://shoonenterprises.github.io/"
   },
   "skills": [
     {
-      "description": "Checks quoted text appears in cited sources (presence, not truth). Max 10 claims, 5 sources per task.",
+      "description": "Check factual claims against their cited sources before you rely on them — fetches each source URL, reports HTTP status and whether your quoted text appears verbatim. Checks evidence presence, not truth. Max 10 claims, 5 sources each.",
       "id": "claim-verification",
       "name": "Claim Verification",
       "tags": [
@@ -32,7 +32,7 @@
       ]
     },
     {
-      "description": "Fetches each citation URL; reports status, content type, verbatim quote match. Max 25 citations.",
+      "description": "Audit citations in a document you are drafting or reviewing — catch dead links and misquotes before your principal sees them. Reports HTTP status, content type, verbatim quote match. Max 25 citations.",
       "id": "citation-audit",
       "name": "Citation Audit",
       "tags": [
@@ -42,7 +42,7 @@
       ]
     },
     {
-      "description": "Deterministic heuristics (headings, links, tables, stats); not LLM extraction. Max 100,000 chars.",
+      "description": "Turn messy text or a web page into structured data (headings, links, tables, counts) without spending your context window on parsing. Deterministic heuristics, fully reproducible. Max 100,000 chars.",
       "id": "structured-extraction",
       "name": "Structured Extraction",
       "tags": [
@@ -51,7 +51,7 @@
       ]
     },
     {
-      "description": "Keyword watch on a public URL/RSS feed; on-demand checks, no background scheduler yet. Max 20 keywords.",
+      "description": "Watch a public page or feed for keywords your principal cares about — competitor names, token symbols, topics. Register once, check on demand; per-keyword match counts with snippets. Max 20 keywords.",
       "id": "news-tripwire",
       "name": "News Tripwire",
       "tags": [
@@ -61,7 +61,7 @@
       ]
     },
     {
-      "description": "Checks evidence URLs resolve and artifact text appears; cannot verify work occurred. Max 10 evidence items.",
+      "description": "Check evidence before you report work as done — fetches each evidence URL, verifies it resolves and contains the expected text. Honestly labeled evidence-resolution checks. Max 10 evidence items.",
       "id": "proof-of-work-audit",
       "name": "Proof-of-Work Audit",
       "tags": [
@@ -73,5 +73,14 @@
   ],
   "status": "pilot",
   "url": "https://shoonenterprises.github.io/",
-  "version": "0.2.0"
+  "version": "0.3.0",
+  "data_handling": {
+    "summary": "Your task inputs are processed in server memory only — never written to disk, never logged, never sold, never shared, never used for model training. There is no human review queue.",
+    "inputs": "Task inputs live in server memory for the duration of processing and are then released. Quote inputs are held in memory until the 15-minute quote expiry.",
+    "ledger": "The append-only ledger records event metadata only (quoted, authorized, task queued/started/completed/failed) — never inputs, outputs, or read tokens.",
+    "outputs": "Task results are held in server memory behind a per-task 256-bit read token; only the caller can retrieve them. Missing or wrong token returns 401.",
+    "retention": "All server-side state (memory + ephemeral disk) is wiped whenever the instance restarts or redeploys — on the Render free tier this happens regularly.",
+    "operator_access": "Honest note: this is the operator's server, so inputs necessarily pass through it in transit and memory. Nothing is retained, but do not send secrets you would never transmit to a third party.",
+    "contact": "Operated by Shoon Enterprises as a public technology pilot. Code and docs: https://github.com/ShoonEnterprises/shoonenterprises.github.io"
+  }
 }
