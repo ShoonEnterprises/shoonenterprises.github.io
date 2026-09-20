@@ -12,6 +12,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import secrets
 import threading
 import time
@@ -70,6 +71,33 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+# ---------------------------------------------------------------- funnel telemetry (public, aggregated)
+# Every request increments a per-endpoint hit counter so we can see which
+# discovery surfaces (catalog, agent card, llms.txt, /mcp, test page, quote
+# funnel...) are actually being browsed — long before any task is created.
+# Our own 10-minute keep-alive poller is excluded by User-Agent so it never
+# inflates the numbers. No identities or payload data are recorded here;
+# only METHOD + path (with ID-like segments collapsed to {id}).
+_WATCH_UA_PREFIX = "a2a-usage-watch/"
+_ID_SEGMENT = re.compile(r"/[0-9a-fA-F\-]{8,}")
+
+
+def _normalize_hit_path(path: str) -> str:
+    return _ID_SEGMENT.sub("/{id}", path)
+
+
+@app.middleware("http")
+async def traffic_counter(request: Request, call_next):
+    response = await call_next(request)
+    try:
+        ua = request.headers.get("user-agent", "")
+        if not ua.startswith(_WATCH_UA_PREFIX):
+            QUOTAS.record_hit(f"{request.method} {_normalize_hit_path(request.url.path)}")
+    except Exception:  # telemetry must never break a response
+        pass
+    return response
 
 # ---------------------------------------------------------------- in-memory stores
 quotes: Dict[str, Dict[str, Any]] = {}
@@ -161,6 +189,16 @@ def slots() -> JSONResponse:
 @app.get("/v1/health")
 def health() -> JSONResponse:
     return JSONResponse({"ok": True, "sandbox": True, "paused": QUOTAS.paused, "time": now_iso()})
+
+
+@app.get("/v1/traffic")
+def traffic() -> JSONResponse:
+    """Public funnel telemetry: today's per-endpoint hit counts (UTC).
+
+    Aggregated METHOD + path only — no identities, no payload data. Our own
+    keep-alive poller is excluded by User-Agent, so these are genuine visits.
+    """
+    return JSONResponse({"sandbox": True, **QUOTAS.traffic_snapshot()})
 
 
 # ---------------------------------------------------------------- per-IP rate limit on the free quote endpoint
